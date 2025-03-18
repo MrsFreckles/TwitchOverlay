@@ -42,6 +42,7 @@
             padding: 20px;
             border-radius: 20px;
             max-width: 500px;
+            word-break: break-word;
         }
 
         #head {
@@ -269,7 +270,7 @@
             }
 
             if (message.startsWith("PING")) {
-                socket.send("PONG :tmi.twitch.tv");
+                twitch.send("PONG :tmi.twitch.tv");
             }
         });
     };
@@ -302,22 +303,31 @@
         const message = messageQueue.shift();
         if (message) {
             isPlaying = true;
-            document.getElementById('messageContent').innerText = message;
+
+            const messageContent = document.getElementById('messageContent');
+            messageContent.innerText = '';
             document.getElementById('message').classList.remove('hidden');
 
-            //google synth
+            // Google synth
             const synth = window.speechSynthesis;
             const utterThis = new SpeechSynthesisUtterance(message);
             synth.speak(utterThis);
 
-            setTimeout(() => {
-                document.getElementById('message').classList.add('hidden');
-                setTimeout(() => {
-                    isPlaying = false;
-                    displayMessage();
-                }, 1000);
-            }, message.length * 150);
-
+            let index = 0;
+            const interval = setInterval(() => {
+                messageContent.innerText += message[index] === ' ' ? '\u00A0' : message[index];
+                index++;
+                if (index === message.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('message').classList.add('hidden');
+                        setTimeout(() => {
+                            isPlaying = false;
+                            displayMessage();
+                        }, 1000);
+                    }, 5000);
+                }
+            }, 75);
         }
     }
 
