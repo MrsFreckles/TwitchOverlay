@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="
+        https://cdn.jsdelivr.net/npm/twitch-js@2.0.0-beta.45/lib/index.min.js
+        "></script>
+
+    <style>
+
+        body{
+            position: relative;
+        }
+
+        #message {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            grid-gap: 20px;
+            align-items: start;
+            transition: all 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+            padding: 20px;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        #messageContent {
+            background-color: rgba(5, 5, 5, 0.8);
+            color: white;
+            font-size: 24px;
+            font-family: Monocraft;
+            padding: 20px;
+            border-radius: 20px;
+            max-width: 500px;
+        }
+
+        #head {
+            width: 100%;
+            aspect-ratio: 1/1;
+            margin-top: 20px;
+            image-rendering: pixelated;
+            animation: headAnimation 0.5s infinite cubic-bezier(0.455, 0.03, 0.515, 0.955);
+        }
+
+        @keyframes headAnimation {
+            0% {
+                transform: translateY(20px);
+            }
+            50% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(20px);
+            }
+        }
+
+        .hidden {
+            opacity: 0;
+            transform: translateY(-100%);
+        }
+
+        #chat {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height:300px;
+            color: white;
+            font-size: 24px;
+            font-family: Monocraft;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 10px;
+            max-width: 500px;
+        }
+
+        #chat div {
+            background-color: rgba(5, 5, 5, 0.8);
+            padding: 20px;
+            border-radius: 20px;
+            margin-right: 20px;
+        }
+
+        #chat img {
+            width: 30px;
+            height: 30px;
+            image-rendering: pixelated;
+        }
+    </style>
+
+</head>
+<body>
+    <div id="message">
+        <img src="koga3d.png" alt="" id="head">
+        <div id="messageContent">
+            Baum? 🌳 Öhm... okay! Baum-Test bestanden, Luna? (≧∇≦)/ 🎸 Oder soll ich jetzt "Baum" interpretieren? 🎶 Ist das so wie bei diesen Psycho-Tests, wo man sagen muss, was man in einer Wolke sieht? (＾ω＾) Sehe ich in "Baum" etwa ... äh... Stabilität? Verwurzelung?
+        </div>
+    </div>
+
+    <div id="chat">
+
+    </div>
+
+</body>
+
+<script>
+    const emotesUrl = 'https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv';
+    let emotes = {};
+
+    // Fetch emotes data
+    fetch(emotesUrl)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(emote => {
+                emotes[emote.code] = emote.urls.find(url => url.size === '4x').url;
+            });
+        });
+
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+        console.log('Connected');
+    };
+
+    let messageQueue = [];
+
+    let isPlaying = false;
+    function addMessageToQueue(message) {
+        messageQueue.push(message);
+        if (!isPlaying) displayMessage();
+    }
+
+    ws.onmessage = (message) => {
+        const type = JSON.parse(message.data).payload.type;
+        if (type === "mitsuki"){
+            const content = JSON.parse(message.data).payload.content;
+            addMessageToQueue(content);
+        }else if (type === "chatMessage"){
+            const content = JSON.parse(message.data).payload.content;
+            const userName = JSON.parse(message.data).payload.user;
+            const chat = document.createElement('div');
+            chat.innerHTML = replaceEmotes(`${userName}: ${content}`);
+            document.getElementById('chat').appendChild(chat);
+
+            //timeout
+            setTimeout(() => {
+                chat.remove();
+            }, 60000);
+        }
+    };
+
+    function replaceEmotes(message) {
+        return message.replace(/\b\w+\b/g, word => {
+            return emotes[word] ? `<img src="${emotes[word]}" alt="${word}" />` : word;
+        });
+    }
+
+    function displayMessage() {
+        const message = messageQueue.shift();
+        if (message) {
+            isPlaying = true;
+            document.getElementById('messageContent').innerText = message;
+            document.getElementById('message').classList.remove('hidden');
+
+            //google synth
+            const synth = window.speechSynthesis;
+            const utterThis = new SpeechSynthesisUtterance(message);
+            synth.speak(utterThis);
+
+            setTimeout(() => {
+                document.getElementById('message').classList.add('hidden');
+                setTimeout(() => {
+                    isPlaying = false;
+                    displayMessage();
+                }, 1000);
+            }, message.length * 150);
+
+        }
+    }
+
+
+</script>
+
+</html>
