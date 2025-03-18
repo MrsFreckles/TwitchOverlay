@@ -9,13 +9,17 @@
 
     <style>
 
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         #app{
             position: relative;
+            width: 100%;
+            overflow: hidden;
+            height: 100vh;
         }
 
         #message {
@@ -116,9 +120,9 @@
         }
 
         #chat img {
-            width: 30px;
             height: 30px;
             image-rendering: pixelated;
+            transform: translateY(5px) scale(1.35);
         }
 
 
@@ -141,7 +145,8 @@
 </body>
 
 <script>
-    const emotesUrl = 'https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv';
+    const globalEmotesUrl = 'https://emotes.adamcy.pl/v1/global/emotes/twitch.bttv.7tv.ffz';
+    const emotesUrl = 'https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv.ffz';
     let emotes = {};
 
     // Fetch emotes data
@@ -149,7 +154,15 @@
         .then(response => response.json())
         .then(data => {
             data.forEach(emote => {
-                emotes[emote.code] = emote.urls.find(url => url.size === '4x').url;
+                emotes[emote.code] = emote.urls[emote.urls.length - 1].url;
+            });
+        });
+
+    fetch(globalEmotesUrl)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(emote => {
+                emotes[emote.code] = emote.urls[emote.urls.length - 1].url;
             });
         });
 
@@ -181,6 +194,18 @@
             twitch.send("NICK justinfan12345");
             twitch.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
             twitch.send("JOIN #frecklesmp4");
+
+            const chatList = document.getElementById("chat");
+            const chat = document.createElement('div');
+            chat.innerHTML = `Verbunden mit Twitch IRC`;
+            chatList.appendChild(chat);
+
+            setTimeout(() => {
+                chat.classList.add('hidden');
+                setTimeout(() => {
+                    chatList.removeChild(chat);
+                }, 500);
+            }, 3000);
         };
     }
 
@@ -230,11 +255,10 @@
                 const userBadge = badge[roles] || "";
 
                 const chatList = document.getElementById("chat");
-                const listItem = document.createElement("li");
 
                 const chat = document.createElement('div');
                 chat.innerHTML = `${userBadge} <span style="color:${color}" class="${roles}">${displayName}</span>: ${replaceEmotes(msgPart)}`;
-                document.getElementById('chat').appendChild(chat);
+                chatList.appendChild(chat);
 
                 setTimeout(() => {
                     chat.classList.add('hidden');
