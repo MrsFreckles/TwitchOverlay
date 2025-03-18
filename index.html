@@ -9,7 +9,12 @@
 
     <style>
 
-        body{
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #app{
             position: relative;
         }
 
@@ -121,17 +126,18 @@
 
 </head>
 <body>
-    <div id="message" class="hidden">
-        <img src="koga3d.png" alt="" id="head">
-        <div id="messageContent">
-            Baum? 🌳 Öhm... okay! Baum-Test bestanden, Luna? (≧∇≦)/ 🎸 Oder soll ich jetzt "Baum" interpretieren? 🎶 Ist das so wie bei diesen Psycho-Tests, wo man sagen muss, was man in einer Wolke sieht? (＾ω＾) Sehe ich in "Baum" etwa ... äh... Stabilität? Verwurzelung?
+    <div id="app">
+        <div id="message" class="hidden">
+            <img src="koga3d.png" alt="" id="head">
+            <div id="messageContent">
+                Baum? 🌳 Öhm... okay! Baum-Test bestanden, Luna? (≧∇≦)/ 🎸 Oder soll ich jetzt "Baum" interpretieren? 🎶 Ist das so wie bei diesen Psycho-Tests, wo man sagen muss, was man in einer Wolke sieht? (＾ω＾) Sehe ich in "Baum" etwa ... äh... Stabilität? Verwurzelung?
+            </div>
+        </div>
+
+        <div id="chat">
+
         </div>
     </div>
-
-    <div id="chat">
-
-    </div>
-
 </body>
 
 <script>
@@ -148,20 +154,37 @@
         });
 
     const ws = new WebSocket('ws://localhost:8080');
-    const twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+    let twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
 
     ws.onopen = () => {
         console.log('Connected');
     };
 
-    twitch.onopen = () => {
-        console.log("Verbunden mit Twitch IRC");
-
-        twitch.send("PASS SCHMOOPIIE");
-        twitch.send("NICK justinfan12345");
-        twitch.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
-        twitch.send("JOIN #frecklesmp4");
+    twitch.onclose = () => {
+        console.log('Twitch WebSocket connection closed');
+        // Reconnect logic
+        setTimeout(() => {
+            twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+            setupTwitchWebSocket();
+        }, 1000);
     };
+
+    twitch.onerror = (error) => {
+        console.error('Twitch WebSocket error:', error);
+    };
+
+    function setupTwitchWebSocket() {
+        twitch.onopen = () => {
+            console.log("Verbunden mit Twitch IRC");
+
+            twitch.send("PASS SCHMOOPIIE");
+            twitch.send("NICK justinfan12345");
+            twitch.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
+            twitch.send("JOIN #frecklesmp4");
+        };
+    }
+
+    setupTwitchWebSocket();
 
     let messageQueue = [];
 
