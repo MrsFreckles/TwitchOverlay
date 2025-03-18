@@ -270,7 +270,7 @@
             }
 
             if (message.startsWith("PING")) {
-                socket.send("PONG :tmi.twitch.tv");
+                twitch.send("PONG :tmi.twitch.tv");
             }
         });
     };
