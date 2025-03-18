@@ -57,14 +57,14 @@
 
         .hidden {
             opacity: 0;
-            transform: translateY(-100%);
+            transform: translateX(100%);
         }
 
         #chat {
             position: absolute;
             top: 0;
             left: 0;
-            height:300px;
+            height:450px;
             color: white;
             font-size: 24px;
             font-family: Monocraft;
@@ -81,6 +81,33 @@
             padding: 20px;
             border-radius: 20px;
             margin-right: 20px;
+            animation: chatAnimationIn 0.5s forwards;
+        }
+
+        #chat div.hidden {
+            animation: chatAnimationOut 0.5s forwards;
+        }
+
+        @keyframes chatAnimationIn {
+            from {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes chatAnimationOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
         }
 
         #chat img {
@@ -88,11 +115,13 @@
             height: 30px;
             image-rendering: pixelated;
         }
+
+
     </style>
 
 </head>
 <body>
-    <div id="message">
+    <div id="message" class="hidden">
         <img src="koga3d.png" alt="" id="head">
         <div id="messageContent">
             Baum? 🌳 Öhm... okay! Baum-Test bestanden, Luna? (≧∇≦)/ 🎸 Oder soll ich jetzt "Baum" interpretieren? 🎶 Ist das so wie bei diesen Psycho-Tests, wo man sagen muss, was man in einer Wolke sieht? (＾ω＾) Sehe ich in "Baum" etwa ... äh... Stabilität? Verwurzelung?
@@ -119,9 +148,19 @@
         });
 
     const ws = new WebSocket('ws://localhost:8080');
+    const twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
 
     ws.onopen = () => {
         console.log('Connected');
+    };
+
+    twitch.onopen = () => {
+        console.log("Verbunden mit Twitch IRC");
+
+        twitch.send("PASS SCHMOOPIIE");
+        twitch.send("NICK justinfan12345");
+        twitch.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
+        twitch.send("JOIN #frecklesmp4");
     };
 
     let messageQueue = [];
@@ -137,19 +176,74 @@
         if (type === "mitsuki"){
             const content = JSON.parse(message.data).payload.content;
             addMessageToQueue(content);
-        }else if (type === "chatMessage"){
-            const content = JSON.parse(message.data).payload.content;
-            const userName = JSON.parse(message.data).payload.user;
-            const chat = document.createElement('div');
-            chat.innerHTML = replaceEmotes(`${userName}: ${content}`);
-            document.getElementById('chat').appendChild(chat);
-
-            //timeout
-            setTimeout(() => {
-                chat.remove();
-            }, 60000);
         }
     };
+
+    const badge = {
+        broadcaster: "👑",
+        mod: "🛡️",
+        vip: "🌟",
+        subscriber: "💎"
+    };
+
+    twitch.onmessage = (event) => {
+        const messages = event.data.split("\r\n");
+
+        messages.forEach((message) => {
+            if (message.includes("PRIVMSG")) {
+                console.log(message);
+
+                const tagPart = message.split(" ")[0];
+                const userPart = message.split("!")[0].substring(1);
+                const msgPart = message.split(`PRIVMSG #frecklesmp4 :`)[1];
+
+                if (!msgPart) return;
+
+                const tags = parseTags(tagPart);
+                const displayName = tags["display-name"] || userPart;
+                const color = tags["color"] || "#ffffff";
+                const roles = getUserRoles(tags["badges"]);
+
+                const userBadge = badge[roles] || "";
+
+                const chatList = document.getElementById("chat");
+                const listItem = document.createElement("li");
+
+                const chat = document.createElement('div');
+                chat.innerHTML = `${userBadge} <span style="color:${color}" class="${roles}">${displayName}</span>: ${replaceEmotes(msgPart)}`;
+                document.getElementById('chat').appendChild(chat);
+
+                setTimeout(() => {
+                    chat.classList.add('hidden');
+                    setTimeout(() => {
+                        chatList.removeChild(chat);
+                    }, 500);
+                }, 60000);
+            }
+
+            if (message.startsWith("PING")) {
+                socket.send("PONG :tmi.twitch.tv");
+            }
+        });
+    };
+
+    function parseTags(tagString) {
+        const tags = {};
+        tagString.substring(1).split(";").forEach(tag => {
+            const [key, value] = tag.split("=");
+            tags[key] = value || "";
+        });
+        return tags;
+    }
+
+    function getUserRoles(badges) {
+        if (!badges) return "";
+        if (badges.includes("broadcaster")) return "broadcaster";
+        if (badges.includes("moderator")) return "mod";
+        if (badges.includes("vip")) return "vip";
+        if (badges.includes("subscriber")) return "subscriber";
+        return "";
+    }
 
     function replaceEmotes(message) {
         return message.replace(/\b\w+\b/g, word => {
