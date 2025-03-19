@@ -329,8 +329,8 @@
     }
 
     function speakText(text) {
-        //filter alles aus text raus, was keine buchstaben sind
-
+        //filter alles aus text raus, was keine buchstaben sind. Erlaubt sind auch Leerzeichen und Satzzeichen
+        text = text.replace(/[^a-zA-ZäöüÄÖÜß .,!?]/g, '');
 
         responsiveVoice.speak(text, "Deutsch Female");
     }
