@@ -125,8 +125,6 @@
 
     </style>
 
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=6P2BEheA"></script>
-
 </head>
 <body>
     <div id="app">
@@ -145,7 +143,7 @@
 
 <script>
     const globalEmotesUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://emotes.adamcy.pl/v1/global/emotes/twitch.bttv.7tv.ffz')}`;
-    const emotesUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv.ffz')}`;
+    const emotesUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/bttv.7tv.ffz')}`;
     let emotes = {};
 
     // Fetch emotes data
@@ -156,6 +154,18 @@
             parsedData.forEach(emote => {
                 emotes[emote.code] = emote.urls[emote.urls.length - 2].url;
             });
+
+            const chatList = document.getElementById("chat");
+            const chat = document.createElement('div');
+            chat.innerHTML = `Loaded ${parsedData.length} 7tv emotes`;
+            chatList.appendChild(chat);
+
+            setTimeout(() => {
+                chat.classList.add('hidden');
+                setTimeout(() => {
+                    chatList.removeChild(chat);
+                }, 500);
+            }, 3000);
         });
 
     fetch(globalEmotesUrl)
@@ -165,6 +175,18 @@
             parsedData.forEach(emote => {
                 emotes[emote.code] = emote.urls[emote.urls.length - 2].url;
             });
+
+            const chatList = document.getElementById("chat");
+            const chat = document.createElement('div');
+            chat.innerHTML = `Loaded ${parsedData.length} global emotes`;
+            chatList.appendChild(chat);
+
+            setTimeout(() => {
+                chat.classList.add('hidden');
+                setTimeout(() => {
+                    chatList.removeChild(chat);
+                }, 500);
+            }, 3000);
         });
 
     const ws = new WebSocket('ws://192.168.178.153:8080');
@@ -235,13 +257,11 @@
         vip: "🌟",
         subscriber: "💎"
     };
-
-    twitch.onmessage = (event) => {
+twitch.onmessage = (event) => {
         const messages = event.data.split("\r\n");
 
         messages.forEach((message) => {
             if (message.includes("PRIVMSG")) {
-                console.log(message);
 
                 const tagPart = message.split(" ")[0];
                 const userPart = message.split("!")[0].substring(1);
@@ -262,7 +282,7 @@
                 const chatList = document.getElementById("chat");
 
                 const chat = document.createElement('div');
-                chat.innerHTML = `${userBadge} <span style="color:${color}" class="${roles}">${displayName}</span>: ${replaceEmotes(msgPart)}`;
+                chat.innerHTML = `${userBadge} <span style="color:${color}" class="${roles}">${displayName}</span>: ${replaceEmotes(msgPart, tags["emotes"])}`;
                 chatList.appendChild(chat);
 
                 setTimeout(() => {
@@ -297,11 +317,37 @@
         return "";
     }
 
-    function replaceEmotes(message) {
-        return message.replace(/\b\w+\b/g, word => {
-            return emotes[word] ? `<img src="${emotes[word]}" alt="${word}" />` : word;
+function replaceEmotes(message, emotesTag) {
+    if (emotesTag) {
+        const emotes = emotesTag.split('/');
+        const emotePositions = [];
+
+        // Collect all emote positions
+        emotes.forEach(emote => {
+            const [id, positions] = emote.split(':');
+            positions.split(',').forEach(position => {
+                const [start, end] = position.split('-').map(Number);
+                emotePositions.push({ start, end, id });
+            });
+        });
+
+        // Sort emote positions by start index
+        emotePositions.sort((a, b) => a.start - b.start);
+
+        // Replace emotes in the message
+        let offset = 0;
+        emotePositions.forEach(({ start, end, id }) => {
+            const emoteCode = message.substring(start + offset, end + 1 + offset);
+            const emoteImg = `<img src="https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0" alt="${emoteCode}" />`;
+            message = message.substring(0, start + offset) + emoteImg + message.substring(end + 1 + offset);
+            offset += emoteImg.length - (end + 1 - start);
         });
     }
+
+    return message.replace(/\b\w+\b/g, word => {
+        return emotes[word] ? `<img src="${emotes[word]}" alt="${word}" />` : word;
+    });
+}
 
     function displayMessage() {
         const message = messageQueue.shift();
@@ -337,7 +383,18 @@
         //filter alles aus text raus, was keine buchstaben sind. Erlaubt sind auch Leerzeichen und Satzzeichen
         text = text.replace(/[^a-zA-ZäöüÄÖÜß .,!?]/g, '');
 
-        responsiveVoice.speak(text, "Deutsch Female");
+        //erstelle ein neues Sprachobjekt
+        const synth = window.speechSynthesis;
+        const utterThis = new SpeechSynthesisUtterance(text);
+
+        //wähle die Stimme aus
+        utterThis.voice = synth.getVoices().find(voice => voice.name === 'Google Deutsch');
+        utterThis.lang = 'de-DE';
+        utterThis.rate = 1;
+        utterThis.pitch = 1;
+
+        //spreche den Text
+        synth.speak(utterThis);
     }
 
 
