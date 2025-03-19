@@ -123,8 +123,9 @@
             transform: translateY(5px) scale(1.35);
         }
 
-
     </style>
+
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=6P2BEheA"></script>
 
 </head>
 <body>
@@ -169,6 +170,7 @@
 
     ws.onopen = () => {
         console.log('Connected');
+        addMessageToQueue("Hallo");
     };
 
     twitch.onclose = () => {
@@ -306,9 +308,7 @@
             document.getElementById('message').classList.remove('hidden');
 
             // Google synth
-            const synth = window.speechSynthesis;
-            const utterThis = new SpeechSynthesisUtterance(message);
-            synth.speak(utterThis);
+            speakText(message)
 
             let index = 0;
             const interval = setInterval(() => {
@@ -326,6 +326,13 @@
                 }
             }, 75);
         }
+    }
+
+    function speakText(text) {
+        //filter alles aus text raus, was keine buchstaben sind
+
+
+        responsiveVoice.speak(text, "Deutsch Female");
     }
 
 
