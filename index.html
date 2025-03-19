@@ -125,8 +125,6 @@
 
     </style>
 
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=6P2BEheA"></script>
-
 </head>
 <body>
     <div id="app">
@@ -385,7 +383,18 @@ function replaceEmotes(message, emotesTag) {
         //filter alles aus text raus, was keine buchstaben sind. Erlaubt sind auch Leerzeichen und Satzzeichen
         text = text.replace(/[^a-zA-ZäöüÄÖÜß .,!?]/g, '');
 
-        responsiveVoice.speak(text, "Deutsch Female");
+        //erstelle ein neues Sprachobjekt
+        const synth = window.speechSynthesis;
+        const utterThis = new SpeechSynthesisUtterance(text);
+
+        //wähle die Stimme aus
+        utterThis.voice = synth.getVoices().find(voice => voice.name === 'Google Deutsch');
+        utterThis.lang = 'de-DE';
+        utterThis.rate = 1;
+        utterThis.pitch = 1;
+
+        //spreche den Text
+        synth.speak(utterThis);
     }
 
 
