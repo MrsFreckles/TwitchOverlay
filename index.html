@@ -144,28 +144,30 @@
 </body>
 
 <script>
-    const globalEmotesUrl = 'https://emotes.adamcy.pl/v1/global/emotes/twitch.bttv.7tv.ffz';
-    const emotesUrl = 'https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv.ffz';
+    const globalEmotesUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://emotes.adamcy.pl/v1/global/emotes/twitch.bttv.7tv.ffz')}`;
+    const emotesUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://emotes.adamcy.pl/v1/channel/frecklesmp4/emotes/twitch.bttv.7tv.ffz')}`;
     let emotes = {};
 
     // Fetch emotes data
     fetch(emotesUrl)
         .then(response => response.json())
         .then(data => {
-            data.forEach(emote => {
-                emotes[emote.code] = emote.urls[emote.urls.length - 1].url;
+            const parsedData = JSON.parse(data.contents);
+            parsedData.forEach(emote => {
+                emotes[emote.code] = emote.urls[emote.urls.length - 2].url;
             });
         });
 
     fetch(globalEmotesUrl)
         .then(response => response.json())
         .then(data => {
-            data.forEach(emote => {
-                emotes[emote.code] = emote.urls[emote.urls.length - 1].url;
+            const parsedData = JSON.parse(data.contents);
+            parsedData.forEach(emote => {
+                emotes[emote.code] = emote.urls[emote.urls.length - 2].url;
             });
         });
 
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket('ws://192.168.178.153:8080');
     let twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
 
     ws.onopen = () => {
@@ -251,6 +253,9 @@
                 const displayName = tags["display-name"] || userPart;
                 const color = tags["color"] || "#ffffff";
                 const roles = getUserRoles(tags["badges"]);
+
+                const notShowingUsers = ["streamelements", "nightbot", "moobot", "streamlabs", "kogaoosawa"];
+                if (notShowingUsers.includes(displayName.toLowerCase())) return;
 
                 const userBadge = badge[roles] || "";
 
