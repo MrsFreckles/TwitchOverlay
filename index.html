@@ -189,8 +189,9 @@
             }, 3000);
         });
 
-    const ws = new WebSocket('ws://192.168.178.153:8080');
+
     let twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+    const ws = new WebSocket('ws://192.168.178.153:8080');
 
     ws.onopen = () => {
         console.log('Connected');
