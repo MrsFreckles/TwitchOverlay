@@ -194,21 +194,27 @@
     const ws = new WebSocket('ws://192.168.178.153:8080');
 
     ws.onopen = () => {
-        console.log('Connected');
+        console.log('Connected to WebSocket');
         addMessageToQueue("Hallo");
     };
 
-    twitch.onclose = () => {
-        console.log('Twitch WebSocket connection closed');
-        // Reconnect logic
-        setTimeout(() => {
-            twitch = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
-            setupTwitchWebSocket();
-        }, 1000);
+    ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
     };
 
-    twitch.onerror = (error) => {
-        console.error('Twitch WebSocket error:', error);
+    ws.onmessage = (message) => {
+        console.log("WebSocket-Nachricht empfangen:", message.data);
+        try {
+            const data = JSON.parse(message.data);
+            if (data.payload && data.payload.type === "mitsuki") {
+                const content = data.payload.content;
+                addMessageToQueue(content);
+            } else {
+                console.warn("Unbekanntes Nachrichtenformat:", data);
+            }
+        } catch (e) {
+            console.error("Fehler beim Parsen der Nachricht:", e);
+        }
     };
 
     function setupTwitchWebSocket() {
